@@ -1,6 +1,3 @@
-using System.Data;
-using System.Text;
-using Arachne.Models;
 using Spectre.Console;
 
 namespace Arachne.Services;

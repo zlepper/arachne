@@ -1,4 +1,3 @@
-using Arachne.Services;
 
 namespace Arachne.Tests.Services;
 

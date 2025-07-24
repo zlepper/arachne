@@ -1,7 +1,4 @@
-using Microsoft.Data.SqlClient;
-using System.Data;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace Arachne.Services;
 
@@ -41,7 +38,7 @@ public class SecureQueryExecutionService : ISecureQueryExecutionService
 
     private static async Task<byte[]?> ActivateApplicationRoleAsync(SqlConnection connection, string roleName, string password)
     {
-        using var command = new SqlCommand("sp_setapprole", connection);
+        await using var command = new SqlCommand("sp_setapprole", connection);
         command.CommandType = CommandType.StoredProcedure;
         command.Parameters.Add("@rolename", SqlDbType.VarChar).Value = roleName;
         command.Parameters.Add("@password", SqlDbType.VarChar).Value = password;
@@ -56,26 +53,31 @@ public class SecureQueryExecutionService : ISecureQueryExecutionService
 
     private static async Task ExecuteNonQueryAsync(SqlConnection connection, string sql)
     {
-        using var command = new SqlCommand(sql, connection);
+        await using var command = new SqlCommand(sql, connection);
         await command.ExecuteNonQueryAsync();
     }
 
     private static string GenerateSecurePassword()
     {
-        // Generate a cryptographically secure random password
+        // Generate a cryptographically secure random password using modern memory-efficient techniques
         const int passwordLength = 32;
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+        ReadOnlySpan<char> chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
         
-        using var rng = RandomNumberGenerator.Create();
-        var bytes = new byte[passwordLength];
-        rng.GetBytes(bytes);
+        // Use stack allocation for small, fixed-size random bytes buffer
+        Span<byte> bytes = stackalloc byte[passwordLength];
+        RandomNumberGenerator.Fill(bytes);
         
-        var result = new StringBuilder(passwordLength);
-        for (int i = 0; i < passwordLength; i++)
+        // Use string.Create for efficient string construction without intermediate allocations
+        return string.Create(passwordLength, 0, (span, _) =>
         {
-            result.Append(chars[bytes[i] % chars.Length]);
-        }
-        
-        return result.ToString();
+            ReadOnlySpan<char> characterSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+            Span<byte> randomBytes = stackalloc byte[passwordLength];
+            RandomNumberGenerator.Fill(randomBytes);
+            
+            for (int i = 0; i < span.Length; i++)
+            {
+                span[i] = characterSet[randomBytes[i] % characterSet.Length];
+            }
+        });
     }
 }

@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Configuration;
-using Arachne.Models;
 
 namespace Arachne.Services;
 

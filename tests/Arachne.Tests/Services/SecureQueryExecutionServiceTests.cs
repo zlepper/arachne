@@ -1,6 +1,3 @@
-using Microsoft.Data.SqlClient;
-using System.Data;
-using Arachne.Services;
 
 namespace Arachne.Tests.Services;
 
@@ -29,7 +26,7 @@ public class SecureQueryExecutionServiceTests : TestBase
         Assert.That(context, Is.Not.Null);
         
         // Verify we can read data
-        using var command = new SqlCommand("SELECT COUNT(*) FROM Users", context.GetSecuredSqlConnection());
+        await using var command = new SqlCommand("SELECT COUNT(*) FROM Users", context.GetSecuredSqlConnection());
         var count = await command.ExecuteScalarAsync();
         Assert.That(count, Is.EqualTo(2));
     }
@@ -44,7 +41,7 @@ public class SecureQueryExecutionServiceTests : TestBase
         await using var context = await _service.StartSecureContextAsync(connectionString);
         
         // Attempt to insert data - should fail due to read-only permissions
-        using var insertCommand = new SqlCommand(
+        await using var insertCommand = new SqlCommand(
             "INSERT INTO Users (UserName, Email) VALUES ('test.user', 'test@example.com')", 
             context.GetSecuredSqlConnection());
         
@@ -62,7 +59,7 @@ public class SecureQueryExecutionServiceTests : TestBase
         await using var context = await _service.StartSecureContextAsync(connectionString);
         
         // Attempt to update data - should fail due to read-only permissions
-        using var updateCommand = new SqlCommand(
+        await using var updateCommand = new SqlCommand(
             "UPDATE Users SET Email = 'updated@example.com' WHERE ID = 1", 
             context.GetSecuredSqlConnection());
         
@@ -80,7 +77,7 @@ public class SecureQueryExecutionServiceTests : TestBase
         await using var context = await _service.StartSecureContextAsync(connectionString);
         
         // Attempt to delete data - should fail due to read-only permissions
-        using var deleteCommand = new SqlCommand(
+        await using var deleteCommand = new SqlCommand(
             "DELETE FROM Users WHERE ID = 1", 
             context.GetSecuredSqlConnection());
         
@@ -98,7 +95,7 @@ public class SecureQueryExecutionServiceTests : TestBase
         await using var context = await _service.StartSecureContextAsync(connectionString);
         
         // Attempt to create table - should fail due to read-only permissions
-        using var createCommand = new SqlCommand(
+        await using var createCommand = new SqlCommand(
             "CREATE TABLE TestTable (ID int PRIMARY KEY)", 
             context.GetSecuredSqlConnection());
         
@@ -121,7 +118,7 @@ public class SecureQueryExecutionServiceTests : TestBase
             await using var context = await _service.StartSecureContextAsync(connectionString);
             
             // Extract role name by querying system tables
-            using var roleQuery = new SqlCommand(
+            await using var roleQuery = new SqlCommand(
                 "SELECT name FROM sys.database_principals WHERE type = 'A' AND name LIKE 'TempReadOnly%'", 
                 context.GetSecuredSqlConnection());
             
@@ -136,10 +133,11 @@ public class SecureQueryExecutionServiceTests : TestBase
         var dbConnectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
         var databaseName = dbConnectionStringBuilder.InitialCatalog;
         
-        using var checkCommand = new SqlCommand($@"
+        await using var checkCommand = new SqlCommand($"""
             USE [{databaseName}];
             SELECT COUNT(*) FROM sys.database_principals 
-            WHERE type = 'A' AND name = '{roleName}'", masterConnection);
+            WHERE type = 'A' AND name = '{roleName}'
+            """, masterConnection);
         
         var roleCount = (int)(await checkCommand.ExecuteScalarAsync() ?? 0);
         Assert.That(roleCount, Is.EqualTo(0), "Temporary role should be cleaned up after disposal");
@@ -166,7 +164,7 @@ public class SecureQueryExecutionServiceTests : TestBase
         
         foreach (var query in queries)
         {
-            using var command = new SqlCommand(query, context.GetSecuredSqlConnection());
+            await using var command = new SqlCommand(query, context.GetSecuredSqlConnection());
             var result = await command.ExecuteScalarAsync();
             results.Add(result);
         }

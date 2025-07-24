@@ -1,5 +1,3 @@
-using Microsoft.Data.SqlClient;
-using Arachne.Models;
 
 namespace Arachne.Services;
 
@@ -12,7 +10,7 @@ public class DatabaseDiscoveryService : IDatabaseDiscoveryService
 {
     public async Task<List<DatabaseInfo>> DiscoverDatabasesAsync(string masterConnectionString, bool excludeSystemDatabases = true)
     {
-        var databases = new List<DatabaseInfo>();
+        List<DatabaseInfo> databases = [];
         
         const string query = @"
             SELECT 
@@ -27,10 +25,10 @@ public class DatabaseDiscoveryService : IDatabaseDiscoveryService
 
         try
         {
-            using var connection = new SqlConnection(masterConnectionString);
+            await using var connection = new SqlConnection(masterConnectionString);
             await connection.OpenAsync();
             
-            using var command = new SqlCommand(query, connection);
+            await using var command = new SqlCommand(query, connection);
             command.Parameters.AddWithValue("@excludeSystemDbs", excludeSystemDatabases);
             
             using var reader = await command.ExecuteReaderAsync();

@@ -2,6 +2,6 @@ namespace Arachne.Models;
 
 public class QueryDefinition
 {
-    public string? Name { get; set; }
-    public string Query { get; set; } = string.Empty;
+    public required string Name { get; set; }
+    public required string Query { get; set; }
 }

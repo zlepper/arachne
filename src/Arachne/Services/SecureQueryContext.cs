@@ -1,5 +1,3 @@
-using Microsoft.Data.SqlClient;
-using System.Data;
 
 namespace Arachne.Services;
 
@@ -60,7 +58,7 @@ public class SecureQueryContext : IDisposable, IAsyncDisposable
 
     private static async Task RevertApplicationRoleAsync(SqlConnection connection, byte[] cookie)
     {
-        using var command = new SqlCommand("sp_unsetapprole", connection);
+        await using var command = new SqlCommand("sp_unsetapprole", connection);
         command.CommandType = CommandType.StoredProcedure;
         command.Parameters.Add("@cookie", SqlDbType.VarBinary).Value = cookie;
         await command.ExecuteNonQueryAsync();
@@ -68,7 +66,7 @@ public class SecureQueryContext : IDisposable, IAsyncDisposable
 
     private static async Task ExecuteNonQueryAsync(SqlConnection connection, string sql)
     {
-        using var command = new SqlCommand(sql, connection);
+        await using var command = new SqlCommand(sql, connection);
         await command.ExecuteNonQueryAsync();
     }
 }

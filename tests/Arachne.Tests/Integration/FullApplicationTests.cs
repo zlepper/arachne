@@ -1,8 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Arachne.Extensions;
-using Arachne.Services;
-using Arachne.Models;
 
 namespace Arachne.Tests.Integration;
 

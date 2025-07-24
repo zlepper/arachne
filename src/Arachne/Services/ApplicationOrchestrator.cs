@@ -1,39 +1,22 @@
-using Microsoft.Data.SqlClient;
 using System.Collections.Concurrent;
-using Arachne.Models;
 using Spectre.Console;
 
 namespace Arachne.Services;
 
-public class ApplicationOrchestrator : IApplicationOrchestrator
+public class ApplicationOrchestrator(
+    IConfigurationService configService,
+    IDatabaseDiscoveryService discoveryService,
+    IFallbackQueryExecutionService executionService,
+    ITableFormatter formatter,
+    IMarkdownFormatter markdownFormatter) : IApplicationOrchestrator
 {
-    private readonly IConfigurationService _configService;
-    private readonly IDatabaseDiscoveryService _discoveryService;
-    private readonly IFallbackQueryExecutionService _executionService;
-    private readonly ITableFormatter _formatter;
-    private readonly IMarkdownFormatter _markdownFormatter;
-
-    public ApplicationOrchestrator(
-        IConfigurationService configService,
-        IDatabaseDiscoveryService discoveryService,
-        IFallbackQueryExecutionService executionService,
-        ITableFormatter formatter,
-        IMarkdownFormatter markdownFormatter)
-    {
-        _configService = configService;
-        _discoveryService = discoveryService;
-        _executionService = executionService;
-        _formatter = formatter;
-        _markdownFormatter = markdownFormatter;
-    }
-
     public async Task<int> ExecuteAsync()
     {
         try
         {
             // Load configuration
-            var sqlConfig = _configService.GetSqlServerConfiguration();
-            var outputConfig = _configService.GetOutputConfiguration();
+            var sqlConfig = configService.GetSqlServerConfiguration();
+            var outputConfig = configService.GetOutputConfiguration();
             
             var allResults = new ConcurrentBag<QueryResult>();
 
@@ -45,12 +28,12 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                     // Discovery phase
                     var discoveryTask = ctx.AddTask("[green]Discovering databases...[/]", maxValue: sqlConfig.Servers.Count);
                     
-                    var allDatabaseTasks = new List<(string serverName, string connectionString, Task<List<DatabaseInfo>> databasesTask)>();
+                    List<(string serverName, string connectionString, Task<List<DatabaseInfo>> databasesTask)> allDatabaseTasks = [];
                     
                     foreach (var server in sqlConfig.Servers)
                     {
                         discoveryTask.Description = $"[green]Discovering databases on {server.Name}...[/]";
-                        var databasesTask = _discoveryService.DiscoverDatabasesAsync(server.ConnectionString, sqlConfig.ExcludeSystemDatabases);
+                        var databasesTask = discoveryService.DiscoverDatabasesAsync(server.ConnectionString, sqlConfig.ExcludeSystemDatabases);
                         allDatabaseTasks.Add((server.Name, server.ConnectionString, databasesTask));
                         discoveryTask.Increment(1);
                     }
@@ -60,7 +43,7 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                     discoveryTask.StopTask();
                     
                     // Build list of all database operations to perform
-                    var allOperations = new List<(string serverName, string databaseName, Func<Task> operation)>();
+                    List<(string serverName, string databaseName, Func<Task> operation)> allOperations = [];
                     
                     foreach (var (serverName, connectionString, databasesTask) in allDatabaseTasks)
                     {
@@ -85,7 +68,7 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                                         var databaseConnectionString = connectionStringBuilder.ConnectionString;
 
                                         // Execute fallback queries
-                                        var result = await _executionService.ExecuteQueriesAsync(
+                                        var result = await executionService.ExecuteQueriesAsync(
                                             capturedServerName,
                                             capturedDatabaseName,
                                             databaseConnectionString,
@@ -149,7 +132,7 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
 
                     // Format and display results
                     var resultList = allResults.ToList();
-                    var formattedResults = _formatter.FormatResults(resultList, outputConfig);
+                    var formattedResults = formatter.FormatResults(resultList, outputConfig);
                     AnsiConsole.WriteLine(formattedResults);
                     
                     // Generate markdown report if enabled
@@ -158,7 +141,7 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                         try
                         {
                             var reportTask = ctx.AddTask("[yellow]Generating markdown report...[/]", maxValue: 1);
-                            var markdownReport = await _markdownFormatter.GenerateMarkdownReportAsync(resultList, outputConfig);
+                            var markdownReport = await markdownFormatter.GenerateMarkdownReportAsync(resultList, outputConfig);
                             await File.WriteAllTextAsync(outputConfig.MarkdownOutputPath, markdownReport);
                             reportTask.Increment(1);
                             reportTask.StopTask();

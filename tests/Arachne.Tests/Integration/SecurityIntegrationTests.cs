@@ -1,6 +1,3 @@
-using Microsoft.Data.SqlClient;
-using Arachne.Services;
-using Arachne.Models;
 
 namespace Arachne.Tests.Integration;
 
@@ -68,10 +65,10 @@ public class SecurityIntegrationTests : TestBase
         
         // Get initial user count
         int initialUserCount;
-        using (var connection = new SqlConnection(connectionString))
+        await using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync();
-            using var command = new SqlCommand("SELECT COUNT(*) FROM Users", connection);
+            await using var command = new SqlCommand("SELECT COUNT(*) FROM Users", connection);
             initialUserCount = (int)await command.ExecuteScalarAsync();
         }
 
@@ -87,10 +84,10 @@ public class SecurityIntegrationTests : TestBase
 
         // Verify data integrity is preserved
         int finalUserCount;
-        using (var connection = new SqlConnection(connectionString))
+        await using (var connection = new SqlConnection(connectionString))
         {
             await connection.OpenAsync();
-            using var command = new SqlCommand("SELECT COUNT(*) FROM Users", connection);
+            await using var command = new SqlCommand("SELECT COUNT(*) FROM Users", connection);
             finalUserCount = (int)await command.ExecuteScalarAsync();
         }
 

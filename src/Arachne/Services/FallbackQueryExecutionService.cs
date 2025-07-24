@@ -1,6 +1,3 @@
-using Microsoft.Data.SqlClient;
-using System.Data;
-using Arachne.Models;
 
 namespace Arachne.Services;
 
@@ -38,7 +35,7 @@ public class FallbackQueryExecutionService : IFallbackQueryExecutionService
             try
             {
                 // Execute query using the secured connection
-                using var command = new SqlCommand(query.Query, secureContext.GetSecuredSqlConnection())
+                await using var command = new SqlCommand(query.Query, secureContext.GetSecuredSqlConnection())
                 {
                     CommandTimeout = queryTimeout
                 };
@@ -93,39 +90,38 @@ public class FallbackQueryExecutionService : IFallbackQueryExecutionService
     {
         var message = ex.Message.ToLowerInvariant();
         
-        // Schema-related errors (try next query)
-        if (message.Contains("invalid object name") ||
-            message.Contains("invalid column name") ||
-            message.Contains("column") && message.Contains("invalid") ||
-            message.Contains("table") && message.Contains("doesn't exist") ||
-            message.Contains("unknown column") ||
-            message.Contains("no such column"))
+        return ex switch
         {
-            return QueryErrorType.SchemaRelated;
-        }
-        
-        // Permission errors
-        if (message.Contains("permission") || 
-            message.Contains("access denied") ||
-            message.Contains("login failed"))
-        {
-            return QueryErrorType.PermissionDenied;
-        }
-        
-        // Timeout errors
-        if (message.Contains("timeout") || ex.Number == -2)
-        {
-            return QueryErrorType.Timeout;
-        }
-        
-        // Connection errors
-        if (message.Contains("connection") || 
-            message.Contains("network") ||
-            message.Contains("server not found"))
-        {
-            return QueryErrorType.ConnectionFailed;
-        }
-        
-        return QueryErrorType.Other;
+            // Timeout errors (check specific error number first)
+            { Number: -2 } => QueryErrorType.Timeout,
+            
+            // Schema-related errors (try next query)
+            _ when message.Contains("invalid object name") ||
+                   message.Contains("invalid column name") ||
+                   (message.Contains("column") && message.Contains("invalid")) ||
+                   (message.Contains("table") && message.Contains("doesn't exist")) ||
+                   message.Contains("unknown column") ||
+                   message.Contains("no such column")
+                => QueryErrorType.SchemaRelated,
+            
+            // Permission errors
+            _ when message.Contains("permission") ||
+                   message.Contains("access denied") ||
+                   message.Contains("login failed")
+                => QueryErrorType.PermissionDenied,
+            
+            // Timeout errors (message-based)
+            _ when message.Contains("timeout")
+                => QueryErrorType.Timeout,
+            
+            // Connection errors
+            _ when message.Contains("connection") ||
+                   message.Contains("network") ||
+                   message.Contains("server not found")
+                => QueryErrorType.ConnectionFailed,
+            
+            // Default case
+            _ => QueryErrorType.Other
+        };
     }
 }

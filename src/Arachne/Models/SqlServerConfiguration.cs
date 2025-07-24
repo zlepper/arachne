@@ -2,8 +2,8 @@ namespace Arachne.Models;
 
 public class SqlServerConfiguration
 {
-    public List<ServerInfo> Servers { get; set; } = new();
-    public List<QueryDefinition> Queries { get; set; } = new();
+    public List<ServerInfo> Servers { get; set; } = [];
+    public List<QueryDefinition> Queries { get; set; } = [];
     public int QueryTimeout { get; set; } = 30;
     public int ConnectionTimeout { get; set; } = 15;
     public bool ExcludeSystemDatabases { get; set; } = true;

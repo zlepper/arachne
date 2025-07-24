@@ -148,6 +148,10 @@ dotnet run --project src/Arachne/Arachne.csproj  # Run application
 - **Compatibility**: All existing functionality preserved
 - **Performance**: Efficient (one role per database, not per query)
 - **Reliability**: Exception-safe cleanup, comprehensive error handling
+- **Code Quality**: Recently updated to use C# 12 collection expressions throughout codebase
+- **QueryDefinition Model**: Updated with required properties for improved null safety
+- **Async Disposal**: Fixed async disposal issues by converting `using` to `await using` for all IAsyncDisposable types (SqlCommand, SqlConnection)
+- **Global Using Statements**: Implemented to reduce repetitive using declarations throughout the codebase
 
 ## Next Steps Considerations
 - Monitor role cleanup in production to ensure no temporary roles accumulate

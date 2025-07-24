@@ -1,5 +1,4 @@
 using Testcontainers.MsSql;
-using Microsoft.Data.SqlClient;
 
 namespace Arachne.Tests;
 
@@ -65,7 +64,7 @@ public abstract class TestBase
         await using var connection = new SqlConnection(connectionStringBuilder.ConnectionString);
         await connection.OpenAsync();
 
-        var createTables = @"
+        var createTables = """
             CREATE TABLE Users (
                 ID int PRIMARY KEY IDENTITY(1,1),
                 UserName nvarchar(100) NOT NULL,
@@ -79,7 +78,8 @@ public abstract class TestBase
                 FeatureName nvarchar(100) NOT NULL,
                 LastUsed datetime2 DEFAULT GETDATE(),
                 UsageCount int DEFAULT 1
-            );";
+            );
+            """;
 
         await using var command = new SqlCommand(createTables, connection);
         await command.ExecuteNonQueryAsync();
@@ -95,7 +95,7 @@ public abstract class TestBase
         await using var connection = new SqlConnection(connectionStringBuilder.ConnectionString);
         await connection.OpenAsync();
 
-        var insertData = @"
+        var insertData = """
             INSERT INTO Users (UserName, Email) VALUES 
                 ('john.doe', 'john@example.com'),
                 ('jane.smith', 'jane@example.com');
@@ -103,7 +103,8 @@ public abstract class TestBase
             INSERT INTO FeatureUsage (UserID, FeatureName, LastUsed, UsageCount) VALUES 
                 (1, 'ReportBuilder', DATEADD(day, -5, GETDATE()), 47),
                 (2, 'DataExport', DATEADD(day, -2, GETDATE()), 12),
-                (1, 'Dashboard', DATEADD(day, -1, GETDATE()), 23);";
+                (1, 'Dashboard', DATEADD(day, -1, GETDATE()), 23);
+            """;
 
         await using var command = new SqlCommand(insertData, connection);
         await command.ExecuteNonQueryAsync();
@@ -117,7 +118,7 @@ public abstract class TestBase
         await using var connection = new SqlConnection(connectionStringBuilder.ConnectionString);
         await connection.OpenAsync();
 
-        var createTables = @"
+        var createTables = """
             CREATE TABLE FeatureLog (
                 ID int PRIMARY KEY IDENTITY(1,1),
                 FeatureName nvarchar(100) NOT NULL,
@@ -128,7 +129,8 @@ public abstract class TestBase
             INSERT INTO FeatureLog (FeatureName, LogDate, UserInfo) VALUES 
                 ('LegacyReports', DATEADD(day, -3, GETDATE()), 'legacy_user_1'),
                 ('LegacyReports', DATEADD(day, -2, GETDATE()), 'legacy_user_2'),
-                ('DataImport', DATEADD(day, -1, GETDATE()), 'legacy_user_1');";
+                ('DataImport', DATEADD(day, -1, GETDATE()), 'legacy_user_1');
+            """;
 
         await using var command = new SqlCommand(createTables, connection);
         await command.ExecuteNonQueryAsync();
