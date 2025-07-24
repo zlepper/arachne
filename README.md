@@ -11,6 +11,7 @@ A C# console application that executes SQL queries across multiple databases on 
 - **Fallback Query Support**: Try multiple query versions to handle different database schemas
 - **Smart Error Handling**: Distinguish between schema-related errors and other failures
 - **Rich Output Formatting**: Display results in formatted tables with query version tracking
+- **Markdown Reports**: Generate comprehensive markdown reports with detailed analytics
 - **Comprehensive Testing**: Full test coverage using NUnit and Testcontainers
 
 ## Project Structure
@@ -95,9 +96,99 @@ Edit your development configuration file to match your environment:
     "ShowEmptyResults": false,
     "IncludeTimestamp": true,
     "ShowQueryVersion": true,
-    "MaxRowsPerDatabase": 100
+    "MaxRowsPerDatabase": 100,
+    "GenerateMarkdownReport": false,
+    "MarkdownOutputPath": "query-results.md",
+    "MarkdownIncludeFailedQueries": true
   }
 }
+```
+
+### Output Configuration Options
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `ShowEmptyResults` | `false` | Show databases that return no data |
+| `IncludeTimestamp` | `true` | Include execution timestamp in output |
+| `ShowQueryVersion` | `true` | Show which query version was used |
+| `MaxRowsPerDatabase` | `100` | Maximum rows to display per database |
+| `NullDisplayValue` | `"<NULL>"` | How to display null values |
+| `DateTimeFormat` | `"yyyy-MM-dd HH:mm:ss"` | DateTime format string |
+| `GenerateMarkdownReport` | `false` | **Enable markdown report generation** |
+| `MarkdownOutputPath` | `"query-results.md"` | **Path for markdown report file** |
+| `MarkdownIncludeFailedQueries` | `true` | **Include failed query information in report** |
+
+## Markdown Reports
+
+Arachne can generate comprehensive markdown reports that include all query results plus detailed analytics. These reports are perfect for documentation, sharing with teams, or including in pull requests.
+
+### Enabling Markdown Reports
+
+Set `GenerateMarkdownReport` to `true` in your configuration:
+
+```json
+{
+  "OutputConfiguration": {
+    "GenerateMarkdownReport": true,
+    "MarkdownOutputPath": "database-analysis-report.md"
+  }
+}
+```
+
+### Report Structure
+
+The markdown report includes:
+
+- **Table of Contents** with navigation links
+- **Executive Summary** with key metrics:
+  - Servers processed (successful/failed)
+  - Total databases discovered
+  - Databases with results vs errors
+  - Total rows returned
+  - Execution time statistics
+- **Query Version Usage** showing which fallback queries were used
+- **Results by Server** with detailed database breakdowns
+- **Detailed Statistics** including:
+  - Server-level performance metrics
+  - Error analysis grouped by type
+  - Performance analysis (fastest/slowest queries)
+  - Query execution timing distribution
+
+### Sample Report Content
+
+```markdown
+# Cross-Database Query Results
+
+**Executed:** 2024-07-24 10:30:15
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| **Servers processed** | 2/2 successful |
+| **Total databases** | 15 |
+| **Databases with results** | 12 |
+| **Databases with errors** | 3 |
+| **Total execution time** | 45.2s |
+| **Average execution time** | 3.01s |
+
+### Query Version Usage
+
+| Query Version | Databases |
+|---------------|-----------|
+| FeatureUsage_v3 | 8 |
+| FeatureUsage_v2 | 4 |
+
+## Results by Server
+
+### Production-Server-1
+
+#### CustomerDB_2024 ✅ Success
+- **Rows:** 156
+- **Query:** FeatureUsage_v3
+- **Execution Time:** 2.4s
+
+[Data tables and detailed results...]
 ```
 
 ## Usage
@@ -129,7 +220,8 @@ The tests use Testcontainers to spin up real SQL Server instances for integratio
 - **ConfigurationService**: Loads and validates configuration from AppSettings.json
 - **DatabaseDiscoveryService**: Discovers user databases on SQL Server instances
 - **FallbackQueryExecutionService**: Executes queries with intelligent fallback handling
-- **TableFormatter**: Formats query results into readable tables
+- **TableFormatter**: Formats query results into readable console tables
+- **MarkdownFormatter**: Generates comprehensive markdown reports with analytics
 
 ### Models
 
@@ -194,7 +286,7 @@ Summary:
 - **Microsoft.Extensions.*** packages: Dependency injection and configuration
 - **NUnit**: Testing framework
 - **Testcontainers**: Integration testing with real SQL Server containers
-- **ConsoleTableExt**: Professional table formatting for console output
+- **Spectre.Console**: Professional console output with rich formatting and progress tracking
 
 ## Architecture
 

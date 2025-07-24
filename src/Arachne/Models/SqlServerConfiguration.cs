@@ -19,4 +19,9 @@ public class OutputConfiguration
     public int MaxRowsPerDatabase { get; set; } = 100;
     public string NullDisplayValue { get; set; } = "<NULL>";
     public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
+    
+    // Markdown report settings
+    public bool GenerateMarkdownReport { get; set; } = false;
+    public string MarkdownOutputPath { get; set; } = "query-results.md";
+    public bool MarkdownIncludeFailedQueries { get; set; } = true;
 }

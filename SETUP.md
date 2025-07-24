@@ -71,10 +71,80 @@ This means you only need to specify the differences in your development file.
   },
   "OutputConfiguration": {
     "ShowEmptyResults": true,
-    "MaxRowsPerDatabase": 1000
+    "MaxRowsPerDatabase": 1000,
+    "GenerateMarkdownReport": true,
+    "MarkdownOutputPath": "production-database-analysis.md"
   }
 }
 ```
+
+## Markdown Reports
+
+Arachne can generate comprehensive markdown reports that include all query results plus detailed analytics. This is particularly useful for:
+
+- **Documentation**: Create reports for compliance or audit purposes
+- **Team Sharing**: Share results with stakeholders who don't have direct database access
+- **Historical Analysis**: Keep records of database states over time
+- **Pull Request Documentation**: Include database impact analysis in code reviews
+
+### Enabling Markdown Reports
+
+Add these settings to your `OutputConfiguration` in `AppSettings.Development.json`:
+
+```json
+{
+  "OutputConfiguration": {
+    "GenerateMarkdownReport": true,
+    "MarkdownOutputPath": "database-analysis-{date}.md",
+    "MarkdownIncludeFailedQueries": true
+  }
+}
+```
+
+### Configuration Options
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `GenerateMarkdownReport` | `false` | Enable markdown report generation |
+| `MarkdownOutputPath` | `"query-results.md"` | Output file path (supports date placeholders) |
+| `MarkdownIncludeFailedQueries` | `true` | Include information about failed query attempts |
+
+### Sample Report Content
+
+When enabled, Arachne will generate a comprehensive report including:
+
+- **Executive Summary**: Key metrics like success rates, execution times, total databases processed
+- **Query Version Analysis**: Which fallback queries were used across different databases
+- **Server Breakdown**: Results organized by server with individual database details
+- **Performance Analytics**: Fastest/slowest queries, timing distributions, performance outliers
+- **Error Analysis**: Common error patterns grouped by type and frequency
+
+The report is saved alongside your console output, providing a permanent record of your database analysis.
+
+### Quick Test
+
+To quickly test markdown report generation with the existing sample configuration:
+
+1. **Enable markdown reports temporarily:**
+   ```bash
+   # Edit AppSettings.json and set GenerateMarkdownReport to true
+   sed -i 's/"GenerateMarkdownReport": false/"GenerateMarkdownReport": true/' src/Arachne/AppSettings.json
+   ```
+
+2. **Run with sample data:**
+   ```bash
+   dotnet run --project src/Arachne/Arachne.csproj
+   ```
+
+3. **Check the generated report:**
+   ```bash
+   cat query-results.md
+   ```
+
+4. **Reset configuration:**
+   ```bash
+   git checkout src/Arachne/AppSettings.json
+   ```
 
 ## Testing
 

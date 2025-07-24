@@ -11,17 +11,20 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
     private readonly IDatabaseDiscoveryService _discoveryService;
     private readonly IFallbackQueryExecutionService _executionService;
     private readonly ITableFormatter _formatter;
+    private readonly IMarkdownFormatter _markdownFormatter;
 
     public ApplicationOrchestrator(
         IConfigurationService configService,
         IDatabaseDiscoveryService discoveryService,
         IFallbackQueryExecutionService executionService,
-        ITableFormatter formatter)
+        ITableFormatter formatter,
+        IMarkdownFormatter markdownFormatter)
     {
         _configService = configService;
         _discoveryService = discoveryService;
         _executionService = executionService;
         _formatter = formatter;
+        _markdownFormatter = markdownFormatter;
     }
 
     public async Task<int> ExecuteAsync()
@@ -148,6 +151,25 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                     var resultList = allResults.ToList();
                     var formattedResults = _formatter.FormatResults(resultList, outputConfig);
                     AnsiConsole.WriteLine(formattedResults);
+                    
+                    // Generate markdown report if enabled
+                    if (outputConfig.GenerateMarkdownReport)
+                    {
+                        try
+                        {
+                            var reportTask = ctx.AddTask("[yellow]Generating markdown report...[/]", maxValue: 1);
+                            var markdownReport = await _markdownFormatter.GenerateMarkdownReportAsync(resultList, outputConfig);
+                            await File.WriteAllTextAsync(outputConfig.MarkdownOutputPath, markdownReport);
+                            reportTask.Increment(1);
+                            reportTask.StopTask();
+                            
+                            AnsiConsole.MarkupLine($"[green]✓[/] Markdown report saved to: [link]{Path.GetFullPath(outputConfig.MarkdownOutputPath)}[/]");
+                        }
+                        catch (Exception ex)
+                        {
+                            AnsiConsole.MarkupLine($"[red]✗[/] Failed to generate markdown report: {ex.Message}");
+                        }
+                    }
                     
                     return 0;
                 });

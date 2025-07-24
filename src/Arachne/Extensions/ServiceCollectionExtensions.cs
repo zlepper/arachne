@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
         services.AddSingleton<IFallbackQueryExecutionService, FallbackQueryExecutionService>();
         services.AddSingleton<ITableFormatter, TableFormatter>();
+        services.AddSingleton<IMarkdownFormatter, MarkdownFormatter>();
         services.AddSingleton<IApplicationOrchestrator, ApplicationOrchestrator>();
         
         return services;

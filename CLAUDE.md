@@ -45,12 +45,14 @@ The application follows clean architecture principles with dependency injection:
 - **DatabaseDiscoveryService**: Discovers user databases on SQL Server instances
 - **FallbackQueryExecutionService**: Executes queries with intelligent fallback handling for different schema versions
 - **TableFormatter**: Formats query results using Spectre.Console for rich terminal output
+- **MarkdownFormatter**: Generates comprehensive markdown reports with detailed analytics and statistics
 
 ### Key Architectural Patterns
 - **Fallback Query System**: Queries are tried in sequence until one succeeds, enabling support for different database schema versions
 - **Parallel Execution**: Database operations run in parallel with configurable concurrency limits via `MaxConcurrentOperations`
 - **Progress Tracking**: Real-time progress display using Spectre.Console live progress bars
 - **Schema Error Detection**: Intelligent error classification to distinguish schema issues from other failures
+- **Dual Output System**: Console output for immediate feedback, optional markdown reports for documentation and sharing
 
 ### Configuration System
 - Base configuration in `AppSettings.json` (safe for git commits)
@@ -112,9 +114,24 @@ The application classifies SQL errors to determine appropriate responses:
 - Schema-related errors → Try next fallback query
 - Permission/timeout/connection errors → Skip database and continue
 
-### Output Formatting
+### Output and Reporting
+The application provides two output formats:
+
+#### Console Output (Default)
 Results are displayed using Spectre.Console with:
 - Live progress tracking during execution
 - Formatted tables showing query results
 - Query version tracking to show which fallback was used
 - Summary statistics including execution times and success rates
+
+#### Markdown Reports (Optional)
+When enabled via `GenerateMarkdownReport: true`, the application generates comprehensive markdown reports with:
+- Table of contents with navigation links
+- Executive summary with key metrics (servers, databases, execution times)
+- Query version usage analysis
+- Detailed results organized by server and database
+- Performance analytics (fastest/slowest queries, timing distribution)
+- Error analysis grouped by type
+- Server-level statistics and breakdowns
+
+Reports are saved to the path specified in `MarkdownOutputPath` (default: "query-results.md")

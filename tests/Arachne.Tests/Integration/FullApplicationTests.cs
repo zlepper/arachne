@@ -43,7 +43,10 @@ public class FullApplicationTests : TestBase
             ["OutputConfiguration:ShowEmptyResults"] = "true",
             ["OutputConfiguration:IncludeTimestamp"] = "true",
             ["OutputConfiguration:ShowQueryVersion"] = "true",
-            ["OutputConfiguration:MaxRowsPerDatabase"] = "100"
+            ["OutputConfiguration:MaxRowsPerDatabase"] = "100",
+            ["OutputConfiguration:GenerateMarkdownReport"] = "false",
+            ["OutputConfiguration:MarkdownOutputPath"] = "test-results.md",
+            ["OutputConfiguration:MarkdownIncludeFailedQueries"] = "true"
         };
 
         var configuration = new ConfigurationBuilder()
@@ -190,5 +193,99 @@ public class FullApplicationTests : TestBase
         Assert.That(outputConfig.ShowEmptyResults, Is.True);
         Assert.That(outputConfig.IncludeTimestamp, Is.True);
         Assert.That(outputConfig.ShowQueryVersion, Is.True);
+        Assert.That(outputConfig.GenerateMarkdownReport, Is.False);
+        Assert.That(outputConfig.MarkdownOutputPath, Is.EqualTo("test-results.md"));
+        Assert.That(outputConfig.MarkdownIncludeFailedQueries, Is.True);
+    }
+
+    [Test]
+    public async Task MarkdownFormatter_Integration_GeneratesCompleteReport()
+    {
+        // Arrange
+        var configService = _serviceProvider.GetRequiredService<IConfigurationService>();
+        var discoveryService = _serviceProvider.GetRequiredService<IDatabaseDiscoveryService>();
+        var executionService = _serviceProvider.GetRequiredService<IFallbackQueryExecutionService>();
+        var markdownFormatter = _serviceProvider.GetRequiredService<IMarkdownFormatter>();
+
+        var sqlConfig = configService.GetSqlServerConfiguration();
+        var outputConfig = configService.GetOutputConfiguration();
+        outputConfig.GenerateMarkdownReport = true; // Enable for this test
+        
+        // Act - Execute the full workflow to get real results
+        var allResults = new List<QueryResult>();
+        
+        foreach (var server in sqlConfig.Servers)
+        {
+            var databases = await discoveryService.DiscoverDatabasesAsync(
+                server.ConnectionString, 
+                sqlConfig.ExcludeSystemDatabases);
+
+            foreach (var database in databases)
+            {
+                var connectionStringBuilder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(server.ConnectionString);
+                connectionStringBuilder.InitialCatalog = database.Name;
+                var databaseConnectionString = connectionStringBuilder.ConnectionString;
+
+                var result = await executionService.ExecuteQueriesAsync(
+                    server.Name,
+                    database.Name,
+                    databaseConnectionString,
+                    sqlConfig.Queries,
+                    sqlConfig.QueryTimeout,
+                    sqlConfig.StopOnFirstSuccessfulQuery);
+
+                allResults.Add(result);
+            }
+        }
+
+        // Generate markdown report
+        var markdownReport = await markdownFormatter.GenerateMarkdownReportAsync(allResults, outputConfig);
+
+        // Assert - Check markdown structure and content
+        Assert.That(markdownReport, Does.Contain("# Cross-Database Query Results"));
+        Assert.That(markdownReport, Does.Contain("## Table of Contents"));
+        Assert.That(markdownReport, Does.Contain("## Summary"));
+        Assert.That(markdownReport, Does.Contain("## Results by Server"));
+        Assert.That(markdownReport, Does.Contain("## Detailed Statistics"));
+        
+        // Check server sections
+        Assert.That(markdownReport, Does.Contain("### TestServer"));
+        
+        // Check database sections
+        Assert.That(markdownReport, Does.Contain("#### TestDatabase1"));
+        Assert.That(markdownReport, Does.Contain("#### TestDatabase2"));
+        Assert.That(markdownReport, Does.Contain("#### LegacyDatabase"));
+        
+        // Check status indicators
+        Assert.That(markdownReport, Does.Contain("✅ Success"));
+        
+        // Check query version information
+        Assert.That(markdownReport, Does.Contain("Query: FeatureUsage_v3"));
+        Assert.That(markdownReport, Does.Contain("Query: FeatureUsage_v1"));
+        
+        // Check failed queries are shown
+        Assert.That(markdownReport, Does.Contain("**Failed Queries:**"));
+        
+        // Check summary statistics
+        Assert.That(markdownReport, Does.Contain("| **Total databases** | 3 |"));
+        Assert.That(markdownReport, Does.Contain("| **Databases with results** | 2 |"));
+        
+        // Check query version usage statistics
+        Assert.That(markdownReport, Does.Contain("### Query Version Usage"));
+        Assert.That(markdownReport, Does.Contain("| FeatureUsage\\_v3 | 2 |"));
+        Assert.That(markdownReport, Does.Contain("| FeatureUsage\\_v1 | 1 |"));
+        
+        // Check performance analysis
+        Assert.That(markdownReport, Does.Contain("### Performance Analysis"));
+        Assert.That(markdownReport, Does.Contain("**Fastest query**"));
+        Assert.That(markdownReport, Does.Contain("**Slowest query**"));
+        
+        // Check data tables are properly formatted
+        Assert.That(markdownReport, Does.Contain("| UserName | FeatureName |")); // TestDatabase2 data
+        Assert.That(markdownReport, Does.Contain("| FeatureName | UsageCount |")); // LegacyDatabase data
+        
+        // Verify markdown is properly escaped
+        Assert.That(markdownReport, Does.Not.Contain("*TestServer*")); // Should be escaped
+        Assert.That(markdownReport, Does.Contain("\\*TestServer\\*").Or.Not.Contain("*TestServer*")); // Either escaped or no asterisks
     }
 }
