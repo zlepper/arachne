@@ -32,14 +32,13 @@ public class TableFormatterTests
         // Act
         var result = _formatter.FormatTable(dataTable, _defaultConfig);
 
-        // Assert - based on the ConsoleTableExt format from the error message
-        var expectedOutput = @"+----+------------+--------+
-| ID | Name       | Active |
-+----+------------+--------+
-| 1  | John Doe   | True   |
-+----+------------+--------+
-| 2  | Jane Smith | False  |
-+----+------------+--------+
+        // Assert - Snapshot the exact Spectre.Console formatting
+        var expectedOutput = @"┌────┬────────────┬────────┐
+│ ID │ Name       │ Active │
+├────┼────────────┼────────┤
+│ 1  │ John Doe   │ True   │
+│ 2  │ Jane Smith │ False  │
+└────┴────────────┴────────┘
 ";
         Assert.That(result, Is.EqualTo(expectedOutput));
     }

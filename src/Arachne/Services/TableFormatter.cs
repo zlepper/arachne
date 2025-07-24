@@ -1,7 +1,7 @@
 using System.Data;
 using System.Text;
 using Arachne.Models;
-using ConsoleTableExt;
+using Spectre.Console;
 
 namespace Arachne.Services;
 
@@ -116,15 +116,14 @@ public class TableFormatter : ITableFormatter
         if (dataTable.Rows.Count == 0)
             return "No data returned.";
 
-        // Convert DataTable to List of List<object> for ConsoleTableExt
-        var tableData = new List<List<object>>();
+        // Create Spectre.Console table
+        var table = new Table();
         
-        // Add headers as first row
-        var headers = dataTable.Columns
-            .Cast<DataColumn>()
-            .Select(column => (object)column.ColumnName)
-            .ToList();
-        tableData.Add(headers);
+        // Add columns
+        foreach (DataColumn column in dataTable.Columns)
+        {
+            table.AddColumn(column.ColumnName);
+        }
         
         // Limit rows based on configuration
         var rowsToShow = Math.Min(dataTable.Rows.Count, outputConfig.MaxRowsPerDatabase);
@@ -133,32 +132,35 @@ public class TableFormatter : ITableFormatter
         for (int i = 0; i < rowsToShow; i++)
         {
             var row = dataTable.Rows[i];
-            var rowData = new List<object>();
+            var rowData = new string[dataTable.Columns.Count];
             
-            foreach (DataColumn column in dataTable.Columns)
+            for (int j = 0; j < dataTable.Columns.Count; j++)
             {
-                var value = row[column];
-                var formattedValue = FormatCellValue(value, outputConfig);
-                rowData.Add(formattedValue);
+                var value = row[j];
+                rowData[j] = FormatCellValue(value, outputConfig);
             }
             
-            tableData.Add(rowData);
+            table.AddRow(rowData);
         }
         
-        // Create table using ConsoleTableExt
-        var table = ConsoleTableBuilder
-            .From(tableData)
-            .WithFormat(ConsoleTableBuilderFormat.Alternative)
-            .Export()
-            .ToString();
+        // Render table to string
+        var renderedTable = new StringBuilder();
+        using (var stringWriter = new StringWriter(renderedTable))
+        {
+            var console = AnsiConsole.Create(new AnsiConsoleSettings
+            {
+                Out = new AnsiConsoleOutput(stringWriter)
+            });
+            console.Write(table);
+        }
             
         // Add truncation message if needed
         if (dataTable.Rows.Count > outputConfig.MaxRowsPerDatabase)
         {
-            table += $"\n... and {dataTable.Rows.Count - outputConfig.MaxRowsPerDatabase} more rows";
+            renderedTable.AppendLine($"... and {dataTable.Rows.Count - outputConfig.MaxRowsPerDatabase} more rows");
         }
 
-        return table;
+        return renderedTable.ToString();
     }
 
     private static string FormatCellValue(object? value, OutputConfiguration outputConfig)

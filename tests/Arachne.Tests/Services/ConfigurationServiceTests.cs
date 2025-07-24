@@ -128,7 +128,6 @@ public class ConfigurationServiceTests
         Assert.That(config.ShowEmptyResults, Is.False);
         Assert.That(config.IncludeTimestamp, Is.True);
         Assert.That(config.MaxRowsPerDatabase, Is.EqualTo(100));
-        Assert.That(config.ColumnPadding, Is.EqualTo(2));
         Assert.That(config.NullDisplayValue, Is.EqualTo("<NULL>"));
         Assert.That(config.DateTimeFormat, Is.EqualTo("yyyy-MM-dd HH:mm:ss"));
     }

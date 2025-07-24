@@ -15,10 +15,8 @@ public class OutputConfiguration
 {
     public bool ShowEmptyResults { get; set; } = false;
     public bool IncludeTimestamp { get; set; } = true;
-    public bool ShowServerDescription { get; set; } = true;
     public bool ShowQueryVersion { get; set; } = true;
     public int MaxRowsPerDatabase { get; set; } = 100;
-    public int ColumnPadding { get; set; } = 2;
     public string NullDisplayValue { get; set; } = "<NULL>";
     public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
 }

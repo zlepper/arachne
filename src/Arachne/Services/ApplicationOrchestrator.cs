@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using System.Collections.Concurrent;
 using Arachne.Models;
+using Spectre.Console;
 
 namespace Arachne.Services;
 
@@ -10,20 +11,17 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
     private readonly IDatabaseDiscoveryService _discoveryService;
     private readonly IFallbackQueryExecutionService _executionService;
     private readonly ITableFormatter _formatter;
-    private readonly IConsoleLogger _logger;
 
     public ApplicationOrchestrator(
         IConfigurationService configService,
         IDatabaseDiscoveryService discoveryService,
         IFallbackQueryExecutionService executionService,
-        ITableFormatter formatter,
-        IConsoleLogger logger)
+        ITableFormatter formatter)
     {
         _configService = configService;
         _discoveryService = discoveryService;
         _executionService = executionService;
         _formatter = formatter;
-        _logger = logger;
     }
 
     public async Task<int> ExecuteAsync()
@@ -35,142 +33,128 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
             var outputConfig = _configService.GetOutputConfiguration();
             
             var allResults = new ConcurrentBag<QueryResult>();
-            
-            _logger.WriteLine($"Starting cross-database query execution...");
-            _logger.WriteLine($"Configured servers: {sqlConfig.Servers.Count}");
-            _logger.WriteLine($"Configured queries: {sqlConfig.Queries.Count}");
-            _logger.WriteLine($"Max concurrent operations: {sqlConfig.MaxConcurrentOperations}");
-            _logger.WriteLine();
 
-            // First, discover all databases across all servers
-            var allDatabaseTasks = new List<(string serverName, string serverDescription, string masterConnectionString, Task<List<DatabaseInfo>> databasesTask)>();
-            
-            foreach (var server in sqlConfig.Servers)
-            {
-                _logger.WriteLine($"Discovering databases on server: {server.Name}");
-                var databasesTask = _discoveryService.DiscoverDatabasesAsync(server.MasterConnectionString, sqlConfig.ExcludeSystemDatabases);
-                allDatabaseTasks.Add((server.Name, server.Description, server.MasterConnectionString, databasesTask));
-            }
-            
-            // Wait for all database discovery to complete
-            await Task.WhenAll(allDatabaseTasks.Select(t => t.databasesTask));
-            
-            // Build list of all database operations to perform
-            var allOperations = new List<Func<Task>>();
-            
-            foreach (var (serverName, serverDescription, masterConnectionString, databasesTask) in allDatabaseTasks)
-            {
-                try
+            return await AnsiConsole.Progress()
+                .AutoClear(false)
+                .HideCompleted(false)
+                .StartAsync(async ctx =>
                 {
-                    var databases = await databasesTask;
-                    _logger.WriteLine($"  Found {databases.Count} databases on {serverName}");
+                    // Discovery phase
+                    var discoveryTask = ctx.AddTask("[green]Discovering databases...[/]", maxValue: sqlConfig.Servers.Count);
                     
-                    foreach (var database in databases)
+                    var allDatabaseTasks = new List<(string serverName, string serverDescription, string masterConnectionString, Task<List<DatabaseInfo>> databasesTask)>();
+                    
+                    foreach (var server in sqlConfig.Servers)
                     {
-                        // Capture variables for closure
-                        var capturedServerName = serverName;
-                        var capturedDatabaseName = database.Name;
-                        var capturedMasterConnectionString = masterConnectionString;
-                        
-                        allOperations.Add(async () =>
-                        {
-                            try
-                            {
-                                _logger.WriteLine($"  Querying database: {capturedDatabaseName} on {capturedServerName}");
-                                
-                                // Build connection string for specific database
-                                var connectionStringBuilder = new SqlConnectionStringBuilder(capturedMasterConnectionString);
-                                connectionStringBuilder.InitialCatalog = capturedDatabaseName;
-                                var databaseConnectionString = connectionStringBuilder.ConnectionString;
-
-                                // Execute fallback queries
-                                var result = await _executionService.ExecuteQueriesAsync(
-                                    capturedServerName,
-                                    capturedDatabaseName,
-                                    databaseConnectionString,
-                                    sqlConfig.Queries,
-                                    sqlConfig.QueryTimeout,
-                                    sqlConfig.StopOnFirstSuccessfulQuery);
-
-                                allResults.Add(result);
-                                
-                                if (result.HasError)
-                                {
-                                    _logger.WriteLine($"    ❌ Error on {capturedServerName}.{capturedDatabaseName}: {result.ErrorMessage}");
-                                }
-                                else if (result.HasData)
-                                {
-                                    _logger.WriteLine($"    ✅ Success on {capturedServerName}.{capturedDatabaseName}: {result.RowCount} rows using {result.SuccessfulQuery?.Name}");
-                                }
-                                else
-                                {
-                                    _logger.WriteLine($"    ✅ Success on {capturedServerName}.{capturedDatabaseName}: No data returned using {result.SuccessfulQuery?.Name}");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.WriteLine($"    ❌ Database error on {capturedServerName}.{capturedDatabaseName}: {ex.Message}");
-                                
-                                allResults.Add(new QueryResult
-                                {
-                                    ServerName = capturedServerName,
-                                    DatabaseName = capturedDatabaseName,
-                                    HasError = true,
-                                    ErrorMessage = $"Database query failed: {ex.Message}"
-                                });
-                            }
-                        });
+                        discoveryTask.Description = $"[green]Discovering databases on {server.Name}...[/]";
+                        var databasesTask = _discoveryService.DiscoverDatabasesAsync(server.MasterConnectionString, sqlConfig.ExcludeSystemDatabases);
+                        allDatabaseTasks.Add((server.Name, server.Description, server.MasterConnectionString, databasesTask));
+                        discoveryTask.Increment(1);
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.WriteLine($"  ❌ Server error on {serverName}: {ex.Message}");
                     
-                    // Add error result for this server
-                    allResults.Add(new QueryResult
+                    // Wait for all database discovery to complete
+                    await Task.WhenAll(allDatabaseTasks.Select(t => t.databasesTask));
+                    discoveryTask.StopTask();
+                    
+                    // Build list of all database operations to perform
+                    var allOperations = new List<(string serverName, string databaseName, Func<Task> operation)>();
+                    
+                    foreach (var (serverName, serverDescription, masterConnectionString, databasesTask) in allDatabaseTasks)
                     {
-                        ServerName = serverName,
-                        DatabaseName = "N/A",
-                        HasError = true,
-                        ErrorMessage = $"Server connection failed: {ex.Message}"
-                    });
-                }
-            }
-            
-            _logger.WriteLine($"Total database operations to perform: {allOperations.Count}");
-            _logger.WriteLine();
-            
-            // Execute all database operations with global concurrency control
-            using var globalSemaphore = new SemaphoreSlim(sqlConfig.MaxConcurrentOperations, sqlConfig.MaxConcurrentOperations);
-            
-            var operationTasks = allOperations.Select(async operation =>
-            {
-                await globalSemaphore.WaitAsync();
-                try
-                {
-                    await operation();
-                }
-                finally
-                {
-                    globalSemaphore.Release();
-                }
-            });
-            
-            await Task.WhenAll(operationTasks);
-            _logger.WriteLine();
+                        try
+                        {
+                            var databases = await databasesTask;
+                            
+                            foreach (var database in databases)
+                            {
+                                // Capture variables for closure
+                                var capturedServerName = serverName;
+                                var capturedDatabaseName = database.Name;
+                                var capturedMasterConnectionString = masterConnectionString;
+                                
+                                var operation = async () =>
+                                {
+                                    try
+                                    {
+                                        // Build connection string for specific database
+                                        var connectionStringBuilder = new SqlConnectionStringBuilder(capturedMasterConnectionString);
+                                        connectionStringBuilder.InitialCatalog = capturedDatabaseName;
+                                        var databaseConnectionString = connectionStringBuilder.ConnectionString;
 
-            // Format and display results
-            _logger.Clear();
-            var resultList = allResults.ToList();
-            var formattedResults = _formatter.FormatResults(resultList, outputConfig);
-            _logger.WriteLine(formattedResults);
-            
-            return 0;
+                                        // Execute fallback queries
+                                        var result = await _executionService.ExecuteQueriesAsync(
+                                            capturedServerName,
+                                            capturedDatabaseName,
+                                            databaseConnectionString,
+                                            sqlConfig.Queries,
+                                            sqlConfig.QueryTimeout,
+                                            sqlConfig.StopOnFirstSuccessfulQuery);
+
+                                        allResults.Add(result);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        allResults.Add(new QueryResult
+                                        {
+                                            ServerName = capturedServerName,
+                                            DatabaseName = capturedDatabaseName,
+                                            HasError = true,
+                                            ErrorMessage = $"Database query failed: {ex.Message}"
+                                        });
+                                    }
+                                };
+                                
+                                allOperations.Add((capturedServerName, capturedDatabaseName, operation));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Add error result for this server
+                            allResults.Add(new QueryResult
+                            {
+                                ServerName = serverName,
+                                DatabaseName = "N/A",
+                                HasError = true,
+                                ErrorMessage = $"Server connection failed: {ex.Message}"
+                            });
+                        }
+                    }
+                    
+                    // Query execution phase
+                    var queryTask = ctx.AddTask("[blue]Executing queries...[/]", maxValue: allOperations.Count);
+                    
+                    // Execute all database operations with global concurrency control
+                    using var globalSemaphore = new SemaphoreSlim(sqlConfig.MaxConcurrentOperations, sqlConfig.MaxConcurrentOperations);
+                    
+                    var operationTasks = allOperations.Select(async (operationInfo) =>
+                    {
+                        await globalSemaphore.WaitAsync();
+                        try
+                        {
+                            queryTask.Description = $"[blue]Querying {operationInfo.serverName}.{operationInfo.databaseName}...[/]";
+                            await operationInfo.operation();
+                            queryTask.Increment(1);
+                        }
+                        finally
+                        {
+                            globalSemaphore.Release();
+                        }
+                    });
+                    
+                    await Task.WhenAll(operationTasks);
+                    queryTask.StopTask();
+
+                    // Format and display results
+                    var resultList = allResults.ToList();
+                    var formattedResults = _formatter.FormatResults(resultList, outputConfig);
+                    AnsiConsole.WriteLine(formattedResults);
+                    
+                    return 0;
+                });
         }
         catch (Exception ex)
         {
-            _logger.WriteLine($"Application error: {ex.Message}");
-            _logger.WriteLine($"Stack trace: {ex.StackTrace}");
+            AnsiConsole.WriteException(ex);
             return 1;
         }
     }
