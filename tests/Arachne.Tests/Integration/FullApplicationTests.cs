@@ -1,10 +1,10 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using CrossDatabaseQuery.Extensions;
-using CrossDatabaseQuery.Services;
-using CrossDatabaseQuery.Models;
+using Arachne.Extensions;
+using Arachne.Services;
+using Arachne.Models;
 
-namespace CrossDatabaseQuery.Tests.Integration;
+namespace Arachne.Tests.Integration;
 
 [TestFixture]
 public class FullApplicationTests : TestBase
@@ -57,7 +57,7 @@ public class FullApplicationTests : TestBase
             .Build();
             
         services.AddSingleton<IConfiguration>(configuration);
-        services.AddCrossDatabaseQueryServices();
+        services.AddArachneServices();
         
         _serviceProvider = services.BuildServiceProvider();
     }

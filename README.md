@@ -1,4 +1,6 @@
-# Cross-Database Query Console Application
+# Arachne
+
+> Named after the legendary weaver from Greek mythology, Arachne was a master craftsperson who could weave intricate patterns across multiple threads. Like her mythical namesake, this application weaves intelligent queries across multiple database schemas with graceful fallback support.
 
 A C# console application that executes SQL queries across multiple databases on different SQL Server instances, with intelligent fallback query support for different database schema versions.
 
@@ -15,18 +17,18 @@ A C# console application that executes SQL queries across multiple databases on 
 
 ```
 ├── src/
-│   └── CrossDatabaseQuery/
+│   └── Arachne/
 │       ├── Models/              # Data models
 │       ├── Services/            # Business logic services
 │       ├── Extensions/          # Service registration extensions
 │       ├── Program.cs           # Main application entry point
 │       └── AppSettings.json     # Configuration file
 ├── tests/
-│   └── CrossDatabaseQuery.Tests/
+│   └── Arachne.Tests/
 │       ├── Services/            # Unit tests for services
 │       ├── Integration/         # Integration tests with real SQL Server
 │       └── TestBase.cs          # Shared test infrastructure
-├── CrossDatabaseQuery.sln       # Solution file
+├── Arachne.sln                  # Solution file
 └── task.md                      # Original project plan
 ```
 
@@ -103,7 +105,7 @@ Edit your development configuration file to match your environment:
 ### Running the Application
 
 ```bash
-dotnet run --project src/CrossDatabaseQuery/CrossDatabaseQuery.csproj
+dotnet run --project src/Arachne/Arachne.csproj
 ```
 
 ### Building the Solution

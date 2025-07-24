@@ -1,4 +1,4 @@
-namespace CrossDatabaseQuery.Models;
+namespace Arachne.Models;
 
 public class SqlServerConfiguration
 {

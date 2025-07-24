@@ -1,8 +1,8 @@
 using Microsoft.Data.SqlClient;
 using System.Data;
-using CrossDatabaseQuery.Models;
+using Arachne.Models;
 
-namespace CrossDatabaseQuery.Services;
+namespace Arachne.Services;
 
 public interface IFallbackQueryExecutionService
 {

@@ -1,9 +1,9 @@
 using System.Data;
 using System.Text;
-using CrossDatabaseQuery.Models;
+using Arachne.Models;
 using ConsoleTableExt;
 
-namespace CrossDatabaseQuery.Services;
+namespace Arachne.Services;
 
 public interface ITableFormatter
 {

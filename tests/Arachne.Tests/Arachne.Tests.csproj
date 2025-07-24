@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\CrossDatabaseQuery\CrossDatabaseQuery.csproj" />
+    <ProjectReference Include="..\..\src\Arachne\Arachne.csproj" />
   </ItemGroup>
 
 </Project>

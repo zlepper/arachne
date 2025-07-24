@@ -1,7 +1,7 @@
 using Testcontainers.MsSql;
 using Microsoft.Data.SqlClient;
 
-namespace CrossDatabaseQuery.Tests;
+namespace Arachne.Tests;
 
 public abstract class TestBase
 {

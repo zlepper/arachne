@@ -2,9 +2,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Data.SqlClient;
-using CrossDatabaseQuery.Extensions;
-using CrossDatabaseQuery.Services;
-using CrossDatabaseQuery.Models;
+using Arachne.Extensions;
+using Arachne.Services;
+using Arachne.Models;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -15,7 +15,7 @@ builder.Configuration
     .AddJsonFile("AppSettings.Development.json", optional: true, reloadOnChange: true);
 
 // Services
-builder.Services.AddCrossDatabaseQueryServices();
+builder.Services.AddArachneServices();
 
 var host = builder.Build();
 

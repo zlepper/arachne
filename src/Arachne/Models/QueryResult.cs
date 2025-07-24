@@ -1,6 +1,6 @@
 using System.Data;
 
-namespace CrossDatabaseQuery.Models;
+namespace Arachne.Models;
 
 public class QueryResult
 {

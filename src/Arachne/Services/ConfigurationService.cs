@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
-using CrossDatabaseQuery.Models;
+using Arachne.Models;
 
-namespace CrossDatabaseQuery.Services;
+namespace Arachne.Services;
 
 public interface IConfigurationService
 {

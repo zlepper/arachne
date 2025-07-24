@@ -1,6 +1,6 @@
-using CrossDatabaseQuery.Services;
+using Arachne.Services;
 
-namespace CrossDatabaseQuery.Tests.Services;
+namespace Arachne.Tests.Services;
 
 [TestFixture]
 public class DatabaseDiscoveryServiceTests : TestBase

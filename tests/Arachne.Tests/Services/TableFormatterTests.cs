@@ -1,8 +1,8 @@
 using System.Data;
-using CrossDatabaseQuery.Services;
-using CrossDatabaseQuery.Models;
+using Arachne.Services;
+using Arachne.Models;
 
-namespace CrossDatabaseQuery.Tests.Services;
+namespace Arachne.Tests.Services;
 
 [TestFixture]
 public class TableFormatterTests

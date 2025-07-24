@@ -1,4 +1,6 @@
-# Development Setup Guide
+# Arachne - Development Setup Guide
+
+> Named after the legendary weaver from Greek mythology, Arachne weaves intelligent queries across multiple database schemas.
 
 ## Quick Start
 
@@ -15,7 +17,7 @@
 
 3. **Create your development configuration**
    ```bash
-   cp src/CrossDatabaseQuery/AppSettings.json src/CrossDatabaseQuery/AppSettings.Development.json
+   cp src/Arachne/AppSettings.json src/Arachne/AppSettings.Development.json
    ```
 
 4. **Edit AppSettings.Development.json with your actual credentials**
@@ -25,7 +27,7 @@
 
 5. **Run the application**
    ```bash
-   dotnet run --project src/CrossDatabaseQuery/CrossDatabaseQuery.csproj
+   dotnet run --project src/Arachne/Arachne.csproj
    ```
 
 ## Configuration Security
@@ -88,7 +90,7 @@ The tests use Testcontainers to spin up real SQL Server instances, so Docker mus
 
 ### "Configuration file not found" error
 - Ensure you're running from the project root directory
-- Check that `AppSettings.json` exists in the current directory or `src/CrossDatabaseQuery/`
+- Check that `AppSettings.json` exists in the current directory or `src/Arachne/`
 
 ### "No SQL Server configurations found" error
 - Verify your `AppSettings.Development.json` has valid server configurations

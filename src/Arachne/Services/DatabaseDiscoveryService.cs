@@ -1,7 +1,7 @@
 using Microsoft.Data.SqlClient;
-using CrossDatabaseQuery.Models;
+using Arachne.Models;
 
-namespace CrossDatabaseQuery.Services;
+namespace Arachne.Services;
 
 public interface IDatabaseDiscoveryService
 {

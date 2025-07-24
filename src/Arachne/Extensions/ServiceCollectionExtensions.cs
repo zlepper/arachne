@@ -1,11 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
-using CrossDatabaseQuery.Services;
+using Arachne.Services;
 
-namespace CrossDatabaseQuery.Extensions;
+namespace Arachne.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddCrossDatabaseQueryServices(this IServiceCollection services)
+    public static IServiceCollection AddArachneServices(this IServiceCollection services)
     {
         services.AddSingleton<IConfigurationService, ConfigurationService>();
         services.AddSingleton<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
