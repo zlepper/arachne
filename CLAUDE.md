@@ -4,118 +4,117 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Cross-Database Query is a C# console application that executes SQL queries across multiple SQL Server databases with intelligent fallback query support for different database schema versions. The application discovers databases, tries multiple query versions in order until one succeeds, and formats results in readable tables.
+Arachne is a C# console application that executes SQL queries across multiple databases on different SQL Server instances, with intelligent fallback query support for different database schema versions.
 
-## Common Development Commands
+## Build and Test Commands
 
-### Build and Run
+### Building
 ```bash
-# Build the solution
-dotnet build
-
-# Run the main application
-dotnet run --project src/CrossDatabaseQuery/CrossDatabaseQuery.csproj
-
-# Run tests (uses Testcontainers for SQL Server integration testing)
-dotnet test
-
-# Run specific test class
-dotnet test --filter "FullyQualifiedName~DatabaseDiscoveryServiceTests"
-
-# Run with verbose output
-dotnet test -v normal
+dotnet build                                    # Build entire solution
+dotnet build src/Arachne/Arachne.csproj       # Build main application only
+dotnet build tests/Arachne.Tests/Arachne.Tests.csproj  # Build tests only
 ```
 
-### Development Workflow
-- Tests use Testcontainers.MsSql to spin up real SQL Server instances
-- No mocking approach - all database interactions tested against real SQL Server
-- AppSettings.json is copied to output directory and used for configuration
+### Running
+```bash
+dotnet run --project src/Arachne/Arachne.csproj  # Run the application
+```
+
+### Testing
+```bash
+dotnet test                                     # Run all tests
+dotnet test --logger "console;verbosity=detailed"  # Run tests with detailed output
+dotnet test tests/Arachne.Tests/Arachne.Tests.csproj  # Run specific test project
+dotnet test --filter "TestCategory=Integration"    # Run integration tests only
+dotnet test --filter "TestCategory=Unit"          # Run unit tests only
+```
+
+### Single Test Execution
+```bash
+dotnet test --filter "MethodName~YourTestMethodName"
+dotnet test --filter "ClassName~YourTestClassName"
+```
 
 ## Architecture Overview
 
-### Core Services (Dependency Injection Pattern)
-- **IConfigurationService**: Loads and validates AppSettings.json configuration
-- **IDatabaseDiscoveryService**: Discovers user databases on SQL Server instances  
-- **IFallbackQueryExecutionService**: Executes queries with intelligent fallback handling
-- **ITableFormatter**: Formats query results into readable console tables
+### Service-Oriented Architecture
+The application follows clean architecture principles with dependency injection:
 
-### Key Models
-- **SqlServerConfiguration**: Server connection and query configuration from AppSettings.json
-- **QueryDefinition**: Individual fallback query with schema version metadata
-- **QueryResult**: Query execution results with timing, error info, and successful query tracking
-- **DatabaseInfo**: Database metadata from discovery process
+- **ApplicationOrchestrator**: Main orchestration service that coordinates the entire workflow
+- **ConfigurationService**: Loads and validates configuration from AppSettings.json/AppSettings.Development.json
+- **DatabaseDiscoveryService**: Discovers user databases on SQL Server instances
+- **FallbackQueryExecutionService**: Executes queries with intelligent fallback handling for different schema versions
+- **TableFormatter**: Formats query results using Spectre.Console for rich terminal output
 
-### Fallback Query Logic
-The application tries queries in order until one succeeds:
-1. Execute queries sequentially (modern schema first, fallback to older)
-2. Classify errors: schema-related errors → try next query; other errors → skip database
-3. Track which query succeeded and which failed for reporting
-4. Support configurable "StopOnFirstSuccessfulQuery" behavior
+### Key Architectural Patterns
+- **Fallback Query System**: Queries are tried in sequence until one succeeds, enabling support for different database schema versions
+- **Parallel Execution**: Database operations run in parallel with configurable concurrency limits via `MaxConcurrentOperations`
+- **Progress Tracking**: Real-time progress display using Spectre.Console live progress bars
+- **Schema Error Detection**: Intelligent error classification to distinguish schema issues from other failures
 
-### Error Classification Strategy
-- **Schema-related errors** (invalid object, invalid column): Try next fallback query
-- **Permission/Timeout/Connection errors**: Skip entire database
-- Intelligent error detection prevents unnecessary fallback attempts
+### Configuration System
+- Base configuration in `AppSettings.json` (safe for git commits)
+- Production credentials in `AppSettings.Development.json` (gitignored)
+- Hierarchical configuration loading with Development overriding base settings
 
-### Configuration Structure (AppSettings.json)
+### Service Registration
+All services are registered in `Extensions/ServiceCollectionExtensions.cs` using the `AddArachneServices()` extension method.
+
+## Testing Strategy
+
+### Test Infrastructure
+- **TestBase Class**: Shared test infrastructure using Testcontainers
+- **Real SQL Server**: Tests run against actual SQL Server containers (no mocking)
+- **Multi-Schema Testing**: Test databases with different schemas (modern vs legacy) to validate fallback behavior
+- **Integration Tests**: Full end-to-end testing in `Integration/FullApplicationTests.cs`
+
+### Test Database Setup
+TestBase automatically creates test databases with different schemas:
+- `TestDatabase1`: Modern schema (Users + FeatureUsage tables)
+- `TestDatabase2`: Modern schema with sample data
+- `LegacyDatabase`: Legacy schema (FeatureLog table only)
+
+### Test Categories
+Use `[Category("Integration")]` and `[Category("Unit")]` attributes for test organization.
+
+## Configuration Details
+
+### Connection String Format
+SQL Server connection strings should target the `master` database for discovery, then individual databases are accessed by modifying the `InitialCatalog` property.
+
+### Query Definition Structure
+Queries support fallback mechanisms where multiple query versions can be defined, tried in order until one succeeds:
+
 ```json
 {
-  "SqlServerConfiguration": {
-    "Servers": [/* SQL Server connection configs */],
-    "Queries": [/* Ordered fallback queries with schema version info */],
-    "QueryTimeout": 30,
-    "StopOnFirstSuccessfulQuery": true
-  },
-  "OutputConfiguration": {
-    "ShowQueryVersion": true,
-    "MaxRowsPerDatabase": 100
-    /* Other formatting options */
-  }
+  "Name": "FeatureUsage_v3",
+  "Query": "SELECT u.UserName, f.FeatureName FROM FeatureUsage f JOIN Users u ON f.UserID = u.ID",
+  "SchemaVersion": "3.0+"
 }
 ```
 
-## Testing Architecture
+### Performance Configuration
+- `MaxConcurrentOperations`: Controls global parallelism across all database operations
+- `QueryTimeout`: SQL command timeout in seconds
+- `ConnectionTimeout`: SQL connection timeout in seconds
+- `StopOnFirstSuccessfulQuery`: Whether to stop trying additional queries after first success
 
-### TestBase Class Pattern
-- Uses Testcontainers.MsSql for SQL Server containers
-- Creates multiple test databases with different schemas (modern vs legacy)
-- Provides helper methods for connection string building
-- OneTimeSetUp/OneTimeTearDown lifecycle for container management
+## Development Notes
 
-### Test Database Schemas
-- **TestDatabase1**: Modern schema (Users + FeatureUsage tables)
-- **TestDatabase2**: Modern schema with test data
-- **LegacyDatabase**: Legacy schema (FeatureLog table) for fallback testing
+### Package Dependencies
+- **Spectre.Console**: Used for rich console output and progress tracking (replaced ConsoleTableExt)
+- **Testcontainers.MsSql**: Integration testing with real SQL Server containers
+- **Microsoft.Data.SqlClient**: SQL Server connectivity
+- **NUnit**: Testing framework
 
-### Integration Testing Strategy
-- Full application workflow testing with real SQL Server
-- Schema version compatibility testing
-- Error handling and fallback behavior validation
-- No database mocking - tests run against actual SQL Server instances
-
-## Service Registration
-
-All services registered as singletons in `ServiceCollectionExtensions.AddCrossDatabaseQueryServices()`:
-- Dependency injection configured in Program.cs
-- Uses Microsoft.Extensions.Hosting for application lifecycle
-- Configuration loaded from AppSettings.json with binding
-
-## Key Implementation Patterns
-
-### Clean Architecture
-- Interface segregation: Each service has focused interface
-- Single responsibility: Each service handles one concern  
-- Dependency injection throughout
-- Testable design with real database integration
-
-### Error Handling
-- Comprehensive SQL error classification
-- Server/database/query context in error messages
-- Graceful degradation (skip problematic databases/servers)
-- Detailed logging of fallback attempts
+### Error Handling Strategy
+The application classifies SQL errors to determine appropriate responses:
+- Schema-related errors → Try next fallback query
+- Permission/timeout/connection errors → Skip database and continue
 
 ### Output Formatting
-- Hierarchical display: Server → Database → Query Results
-- Shows successful query version used per database
-- Warns about failed query attempts with reasons
-- Summary statistics including query version distribution
+Results are displayed using Spectre.Console with:
+- Live progress tracking during execution
+- Formatted tables showing query results
+- Query version tracking to show which fallback was used
+- Summary statistics including execution times and success rates
