@@ -9,6 +9,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IConfigurationService, ConfigurationService>();
         services.AddSingleton<IDatabaseDiscoveryService, DatabaseDiscoveryService>();
+        services.AddSingleton<ISecureQueryExecutionService, SecureQueryExecutionService>();
         services.AddSingleton<IFallbackQueryExecutionService, FallbackQueryExecutionService>();
         services.AddSingleton<ITableFormatter, TableFormatter>();
         services.AddSingleton<IMarkdownFormatter, MarkdownFormatter>();

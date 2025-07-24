@@ -12,6 +12,13 @@ public interface IFallbackQueryExecutionService
 
 public class FallbackQueryExecutionService : IFallbackQueryExecutionService
 {
+    private readonly ISecureQueryExecutionService _secureExecutionService;
+
+    public FallbackQueryExecutionService(ISecureQueryExecutionService secureExecutionService)
+    {
+        _secureExecutionService = secureExecutionService;
+    }
+
     public async Task<QueryResult> ExecuteQueriesAsync(string serverName, string databaseName, 
         string connectionString, List<QueryDefinition> queries, int queryTimeout, bool stopOnFirstSuccess = true)
     {
@@ -23,14 +30,15 @@ public class FallbackQueryExecutionService : IFallbackQueryExecutionService
 
         var startTime = DateTime.UtcNow;
 
+        // Create secure context once per database
+        await using var secureContext = await _secureExecutionService.StartSecureContextAsync(connectionString);
+
         foreach (var query in queries)
         {
             try
             {
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                using var command = new SqlCommand(query.Query, connection)
+                // Execute query using the secured connection
+                using var command = new SqlCommand(query.Query, secureContext.GetSecuredSqlConnection())
                 {
                     CommandTimeout = queryTimeout
                 };
@@ -65,7 +73,7 @@ public class FallbackQueryExecutionService : IFallbackQueryExecutionService
             {
                 result.FailedQueryNames.Add($"{query.Name} ({ex.Message})");
                 result.HasError = true;
-                result.ErrorMessage = $"Unexpected error on query '{query.Name}': {ex.Message}";
+                result.ErrorMessage = $"Security or execution error on query '{query.Name}': {ex.Message}";
                 result.ExecutionTime = DateTime.UtcNow - startTime;
                 return result;
             }

@@ -11,7 +11,8 @@ public class FallbackQueryExecutionServiceTests : TestBase
     [SetUp]
     public void SetUp()
     {
-        _service = new FallbackQueryExecutionService();
+        var secureExecutionService = new SecureQueryExecutionService();
+        _service = new FallbackQueryExecutionService(secureExecutionService);
     }
 
     [Test]
