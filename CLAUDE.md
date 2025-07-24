@@ -90,16 +90,38 @@ Queries support fallback mechanisms where multiple query versions can be defined
 ```json
 {
   "Name": "FeatureUsage_v3",
-  "Query": "SELECT u.UserName, f.FeatureName FROM FeatureUsage f JOIN Users u ON f.UserID = u.ID",
-  "SchemaVersion": "3.0+"
+  "Query": "SELECT u.UserName, f.FeatureName FROM FeatureUsage f JOIN Users u ON f.UserID = u.ID"
 }
 ```
 
-### Performance Configuration
-- `MaxConcurrentOperations`: Controls global parallelism across all database operations
-- `QueryTimeout`: SQL command timeout in seconds
-- `ConnectionTimeout`: SQL connection timeout in seconds
-- `StopOnFirstSuccessfulQuery`: Whether to stop trying additional queries after first success
+**Note**: The actual QueryDefinition model only supports `Name` and `Query` properties. Properties like `SchemaVersion` and `Description` shown in sample configurations are not currently implemented in the code.
+
+### Available Configuration Options
+
+#### SqlServerConfiguration Section
+- `QueryTimeout`: SQL command timeout in seconds (default: 30)
+- `ConnectionTimeout`: SQL connection timeout in seconds (default: 15)
+- `ExcludeSystemDatabases`: Skip system databases during discovery (default: true)
+- `StopOnFirstSuccessfulQuery`: Stop trying additional queries after first success (default: true)
+- `MaxConcurrentOperations`: Controls global parallelism across all database operations (default: 10)
+
+#### Server Configuration
+Each server in the `Servers` array supports:
+- `Name`: Display name for the server
+- `ConnectionString`: SQL Server connection string (should target master database)
+
+**Note**: Sample configurations may show `MasterConnectionString` and `Description` properties, but the actual ServerInfo model only supports `Name` and `ConnectionString`.
+
+#### OutputConfiguration Section  
+- `ShowEmptyResults`: Show databases that return no data (default: false)
+- `IncludeTimestamp`: Include execution timestamp in output (default: true)
+- `ShowQueryVersion`: Show which query version was used (default: true)
+- `MaxRowsPerDatabase`: Maximum rows to display per database (default: 100)
+- `NullDisplayValue`: How to display null values (default: "<NULL>")
+- `DateTimeFormat`: DateTime format string (default: "yyyy-MM-dd HH:mm:ss")
+- `GenerateMarkdownReport`: Enable markdown report generation (default: false)
+- `MarkdownOutputPath`: Path for markdown report file (default: "query-results.md")
+- `MarkdownIncludeFailedQueries`: Include failed query information in report (default: true)
 
 ## Development Notes
 

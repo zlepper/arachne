@@ -49,6 +49,17 @@ The application loads configuration in this order:
 
 This means you only need to specify the differences in your development file.
 
+### Important Note About Configuration Properties
+
+The current `AppSettings.Development.json` file in the repository contains properties that are not implemented in the actual code models:
+- `MasterConnectionString` (should be `ConnectionString`)
+- `Description` (not supported in ServerInfo model)
+- `ShowServerDescription` (not supported in OutputConfiguration model)
+- `ColumnPadding` (not supported in OutputConfiguration model)
+- Query properties like `Description` and `SchemaVersion` (not supported in QueryDefinition model)
+
+The examples below show the correct property names that actually work with the current codebase.
+
 ## Example Development Configuration
 
 ```json
@@ -57,23 +68,29 @@ This means you only need to specify the differences in your development file.
     "Servers": [
       {
         "Name": "Production-Customer-A",
-        "MasterConnectionString": "Server=prod-sql-01.customer-a.com;Database=master;User Id=readonly_user;Password=SecurePassword123!;TrustServerCertificate=true;",
-        "Description": "Customer A Production Environment"
+        "ConnectionString": "Server=prod-sql-01.customer-a.com;Database=master;User Id=readonly_user;Password=SecurePassword123!;TrustServerCertificate=true;"
       },
       {
         "Name": "Production-Customer-B", 
-        "MasterConnectionString": "Server=prod-sql-02.customer-b.com;Database=master;User Id=query_user;Password=AnotherPassword456!;TrustServerCertificate=true;",
-        "Description": "Customer B Production Environment"
+        "ConnectionString": "Server=prod-sql-02.customer-b.com;Database=master;User Id=query_user;Password=AnotherPassword456!;TrustServerCertificate=true;"
       }
     ],
     "QueryTimeout": 60,
-    "ConnectionTimeout": 30
+    "ConnectionTimeout": 30,
+    "ExcludeSystemDatabases": true,
+    "StopOnFirstSuccessfulQuery": true,
+    "MaxConcurrentOperations": 10
   },
   "OutputConfiguration": {
     "ShowEmptyResults": true,
+    "IncludeTimestamp": true,
+    "ShowQueryVersion": true,
     "MaxRowsPerDatabase": 1000,
+    "NullDisplayValue": "<NULL>",
+    "DateTimeFormat": "yyyy-MM-dd HH:mm:ss",
     "GenerateMarkdownReport": true,
-    "MarkdownOutputPath": "production-database-analysis.md"
+    "MarkdownOutputPath": "production-database-analysis.md",
+    "MarkdownIncludeFailedQueries": true
   }
 }
 ```

@@ -49,8 +49,7 @@ For production credentials, create `AppSettings.Development.json` with your actu
     "Servers": [
       {
         "Name": "Production-Server-1",
-        "MasterConnectionString": "Server=prod-sql-01.company.com;Database=master;User Id=query_user;Password=YourActualPassword;TrustServerCertificate=true;",
-        "Description": "Production SQL Server - Customer Environment 1"
+        "ConnectionString": "Server=prod-sql-01.company.com;Database=master;User Id=query_user;Password=YourActualPassword;TrustServerCertificate=true;"
       }
     ]
   }
@@ -69,34 +68,32 @@ Edit your development configuration file to match your environment:
     "Servers": [
       {
         "Name": "Production-Server",
-        "MasterConnectionString": "Server=prod-server;Database=master;Trusted_Connection=true;",
-        "Description": "Production SQL Server"
+        "ConnectionString": "Server=prod-server;Database=master;Trusted_Connection=true;"
       }
     ],
     "Queries": [
       {
         "Name": "FeatureUsage_v3",
-        "Description": "Latest schema with user details",
-        "Query": "SELECT u.UserName, f.FeatureName, f.LastUsed, f.UsageCount FROM FeatureUsage f JOIN Users u ON f.UserID = u.ID WHERE f.LastUsed > DATEADD(day, -30, GETDATE())",
-        "SchemaVersion": "3.0+"
+        "Query": "SELECT u.UserName, f.FeatureName, f.LastUsed, f.UsageCount FROM FeatureUsage f JOIN Users u ON f.UserID = u.ID WHERE f.LastUsed > DATEADD(day, -30, GETDATE())"
       },
       {
         "Name": "FeatureUsage_v2", 
-        "Description": "Schema without user details join",
-        "Query": "SELECT UserID, FeatureName, LastUsed, UsageCount FROM FeatureUsage WHERE LastUsed > DATEADD(day, -30, GETDATE())",
-        "SchemaVersion": "2.0-2.9"
+        "Query": "SELECT UserID, FeatureName, LastUsed, UsageCount FROM FeatureUsage WHERE LastUsed > DATEADD(day, -30, GETDATE())"
       }
     ],
     "QueryTimeout": 30,
     "ConnectionTimeout": 15,
     "ExcludeSystemDatabases": true,
-    "StopOnFirstSuccessfulQuery": true
+    "StopOnFirstSuccessfulQuery": true,
+    "MaxConcurrentOperations": 10
   },
   "OutputConfiguration": {
     "ShowEmptyResults": false,
     "IncludeTimestamp": true,
     "ShowQueryVersion": true,
     "MaxRowsPerDatabase": 100,
+    "NullDisplayValue": "<NULL>",
+    "DateTimeFormat": "yyyy-MM-dd HH:mm:ss",
     "GenerateMarkdownReport": false,
     "MarkdownOutputPath": "query-results.md",
     "MarkdownIncludeFailedQueries": true
