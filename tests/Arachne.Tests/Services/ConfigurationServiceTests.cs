@@ -15,12 +15,9 @@ public class ConfigurationServiceTests
         var configData = new Dictionary<string, string?>
         {
             ["SqlServerConfiguration:Servers:0:Name"] = "TestServer",
-            ["SqlServerConfiguration:Servers:0:MasterConnectionString"] = "Server=test;Database=master;",
-            ["SqlServerConfiguration:Servers:0:Description"] = "Test Server",
+            ["SqlServerConfiguration:Servers:0:ConnectionString"] = "Server=test;Database=master;",
             ["SqlServerConfiguration:Queries:0:Name"] = "TestQuery",
-            ["SqlServerConfiguration:Queries:0:Description"] = "Test Query Description",
             ["SqlServerConfiguration:Queries:0:Query"] = "SELECT 1",
-            ["SqlServerConfiguration:Queries:0:SchemaVersion"] = "1.0",
             ["SqlServerConfiguration:QueryTimeout"] = "45",
             ["SqlServerConfiguration:ConnectionTimeout"] = "20",
             ["SqlServerConfiguration:ExcludeSystemDatabases"] = "false",
@@ -46,14 +43,11 @@ public class ConfigurationServiceTests
         // Assert
         Assert.That(config.Servers.Count, Is.EqualTo(1));
         Assert.That(config.Servers[0].Name, Is.EqualTo("TestServer"));
-        Assert.That(config.Servers[0].MasterConnectionString, Is.EqualTo("Server=test;Database=master;"));
-        Assert.That(config.Servers[0].Description, Is.EqualTo("Test Server"));
+        Assert.That(config.Servers[0].ConnectionString, Is.EqualTo("Server=test;Database=master;"));
 
         Assert.That(config.Queries.Count, Is.EqualTo(1));
         Assert.That(config.Queries[0].Name, Is.EqualTo("TestQuery"));
-        Assert.That(config.Queries[0].Description, Is.EqualTo("Test Query Description"));
         Assert.That(config.Queries[0].Query, Is.EqualTo("SELECT 1"));
-        Assert.That(config.Queries[0].SchemaVersion, Is.EqualTo("1.0"));
 
         Assert.That(config.QueryTimeout, Is.EqualTo(45));
         Assert.That(config.ConnectionTimeout, Is.EqualTo(20));
@@ -130,5 +124,35 @@ public class ConfigurationServiceTests
         Assert.That(config.MaxRowsPerDatabase, Is.EqualTo(100));
         Assert.That(config.NullDisplayValue, Is.EqualTo("<NULL>"));
         Assert.That(config.DateTimeFormat, Is.EqualTo("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    [Test]
+    public void GetSqlServerConfiguration_QueriesWithoutNames_AutoGeneratesNames()
+    {
+        // Arrange
+        var configData = new Dictionary<string, string?>
+        {
+            ["SqlServerConfiguration:Servers:0:Name"] = "TestServer",
+            ["SqlServerConfiguration:Servers:0:ConnectionString"] = "Server=test;Database=master;",
+            ["SqlServerConfiguration:Queries:0:Query"] = "SELECT 1",
+            ["SqlServerConfiguration:Queries:1:Name"] = "CustomName",
+            ["SqlServerConfiguration:Queries:1:Query"] = "SELECT 2",
+            ["SqlServerConfiguration:Queries:2:Query"] = "SELECT 3"
+        };
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(configData)
+            .Build();
+
+        var service = new ConfigurationService(configuration);
+
+        // Act
+        var config = service.GetSqlServerConfiguration();
+
+        // Assert
+        Assert.That(config.Queries.Count, Is.EqualTo(3));
+        Assert.That(config.Queries[0].Name, Is.EqualTo("Query1")); // Auto-generated
+        Assert.That(config.Queries[1].Name, Is.EqualTo("CustomName")); // Explicitly set
+        Assert.That(config.Queries[2].Name, Is.EqualTo("Query3")); // Auto-generated
     }
 }

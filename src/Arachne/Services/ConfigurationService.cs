@@ -33,6 +33,15 @@ public class ConfigurationService : IConfigurationService
             throw new InvalidOperationException("No query configurations found in AppSettings.json");
         }
         
+        // Auto-generate names for queries that don't have them
+        for (int i = 0; i < config.Queries.Count; i++)
+        {
+            if (string.IsNullOrEmpty(config.Queries[i].Name))
+            {
+                config.Queries[i].Name = $"Query{i + 1}";
+            }
+        }
+        
         return config;
     }
 

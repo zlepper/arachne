@@ -42,13 +42,13 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                     // Discovery phase
                     var discoveryTask = ctx.AddTask("[green]Discovering databases...[/]", maxValue: sqlConfig.Servers.Count);
                     
-                    var allDatabaseTasks = new List<(string serverName, string serverDescription, string masterConnectionString, Task<List<DatabaseInfo>> databasesTask)>();
+                    var allDatabaseTasks = new List<(string serverName, string connectionString, Task<List<DatabaseInfo>> databasesTask)>();
                     
                     foreach (var server in sqlConfig.Servers)
                     {
                         discoveryTask.Description = $"[green]Discovering databases on {server.Name}...[/]";
-                        var databasesTask = _discoveryService.DiscoverDatabasesAsync(server.MasterConnectionString, sqlConfig.ExcludeSystemDatabases);
-                        allDatabaseTasks.Add((server.Name, server.Description, server.MasterConnectionString, databasesTask));
+                        var databasesTask = _discoveryService.DiscoverDatabasesAsync(server.ConnectionString, sqlConfig.ExcludeSystemDatabases);
+                        allDatabaseTasks.Add((server.Name, server.ConnectionString, databasesTask));
                         discoveryTask.Increment(1);
                     }
                     
@@ -59,7 +59,7 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                     // Build list of all database operations to perform
                     var allOperations = new List<(string serverName, string databaseName, Func<Task> operation)>();
                     
-                    foreach (var (serverName, serverDescription, masterConnectionString, databasesTask) in allDatabaseTasks)
+                    foreach (var (serverName, connectionString, databasesTask) in allDatabaseTasks)
                     {
                         try
                         {
@@ -70,14 +70,14 @@ public class ApplicationOrchestrator : IApplicationOrchestrator
                                 // Capture variables for closure
                                 var capturedServerName = serverName;
                                 var capturedDatabaseName = database.Name;
-                                var capturedMasterConnectionString = masterConnectionString;
+                                var capturedConnectionString = connectionString;
                                 
                                 var operation = async () =>
                                 {
                                     try
                                     {
                                         // Build connection string for specific database
-                                        var connectionStringBuilder = new SqlConnectionStringBuilder(capturedMasterConnectionString);
+                                        var connectionStringBuilder = new SqlConnectionStringBuilder(capturedConnectionString);
                                         connectionStringBuilder.InitialCatalog = capturedDatabaseName;
                                         var databaseConnectionString = connectionStringBuilder.ConnectionString;
 

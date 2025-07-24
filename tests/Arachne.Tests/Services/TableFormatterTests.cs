@@ -124,7 +124,7 @@ public class TableFormatterTests
                 ServerName = "Server1",
                 DatabaseName = "DB1",
                 Data = CreateSampleDataTable(),
-                SuccessfulQuery = new QueryDefinition { Name = "Query1" },
+                SuccessfulQuery = new QueryDefinition { Name = "Query1", Query = "SELECT 1" },
                 HasError = false
             },
             new()
@@ -132,7 +132,7 @@ public class TableFormatterTests
                 ServerName = "Server1",
                 DatabaseName = "DB2",
                 Data = new DataTable(),
-                SuccessfulQuery = new QueryDefinition { Name = "Query1" },
+                SuccessfulQuery = new QueryDefinition { Name = "Query1", Query = "SELECT 1" },
                 HasError = false
             },
             new()
@@ -171,7 +171,7 @@ public class TableFormatterTests
                 ServerName = "Server1",
                 DatabaseName = "DB1",
                 Data = CreateSampleDataTable(),
-                SuccessfulQuery = new QueryDefinition { Name = "QueryV2" },
+                SuccessfulQuery = new QueryDefinition { Name = "QueryV2", Query = "SELECT 2" },
                 FailedQueryNames = new List<string> { "QueryV3 (Invalid object 'NewTable')" },
                 HasError = false
             }
@@ -196,7 +196,7 @@ public class TableFormatterTests
                 ServerName = "Server1",
                 DatabaseName = "DB1",
                 Data = CreateSampleDataTable(),
-                SuccessfulQuery = new QueryDefinition { Name = "QueryV1" },
+                SuccessfulQuery = new QueryDefinition { Name = "QueryV1", Query = "SELECT 1" },
                 HasError = false
             },
             new()
@@ -204,7 +204,7 @@ public class TableFormatterTests
                 ServerName = "Server1",
                 DatabaseName = "DB2",
                 Data = CreateSampleDataTable(),
-                SuccessfulQuery = new QueryDefinition { Name = "QueryV2" },
+                SuccessfulQuery = new QueryDefinition { Name = "QueryV2", Query = "SELECT 2" },
                 HasError = false
             },
             new()
@@ -212,7 +212,7 @@ public class TableFormatterTests
                 ServerName = "Server1",
                 DatabaseName = "DB3",
                 Data = CreateSampleDataTable(),
-                SuccessfulQuery = new QueryDefinition { Name = "QueryV1" },
+                SuccessfulQuery = new QueryDefinition { Name = "QueryV1", Query = "SELECT 1" },
                 HasError = false
             }
         };

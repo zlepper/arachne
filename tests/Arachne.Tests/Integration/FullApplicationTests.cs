@@ -20,26 +20,19 @@ public class FullApplicationTests : TestBase
         var configData = new Dictionary<string, string?>
         {
             ["SqlServerConfiguration:Servers:0:Name"] = "TestServer",
-            ["SqlServerConfiguration:Servers:0:MasterConnectionString"] = GetMasterConnectionString(),
-            ["SqlServerConfiguration:Servers:0:Description"] = "Test SQL Server",
+            ["SqlServerConfiguration:Servers:0:ConnectionString"] = GetMasterConnectionString(),
             
             // Modern schema query (should work on TestDatabase2)
             ["SqlServerConfiguration:Queries:0:Name"] = "FeatureUsage_v3",
-            ["SqlServerConfiguration:Queries:0:Description"] = "Latest schema with user details",
             ["SqlServerConfiguration:Queries:0:Query"] = "SELECT u.UserName, f.FeatureName, f.LastUsed, f.UsageCount FROM FeatureUsage f JOIN Users u ON f.UserID = u.ID WHERE f.LastUsed > DATEADD(day, -30, GETDATE())",
-            ["SqlServerConfiguration:Queries:0:SchemaVersion"] = "3.0+",
             
             // Intermediate schema query (should work on databases with FeatureUsage table but no Users join)
             ["SqlServerConfiguration:Queries:1:Name"] = "FeatureUsage_v2",
-            ["SqlServerConfiguration:Queries:1:Description"] = "Schema without user details join",
             ["SqlServerConfiguration:Queries:1:Query"] = "SELECT UserID, FeatureName, LastUsed, UsageCount FROM FeatureUsage WHERE LastUsed > DATEADD(day, -30, GETDATE())",
-            ["SqlServerConfiguration:Queries:1:SchemaVersion"] = "2.0-2.9",
             
             // Legacy schema query (should work on LegacyDatabase)
             ["SqlServerConfiguration:Queries:2:Name"] = "FeatureUsage_v1",
-            ["SqlServerConfiguration:Queries:2:Description"] = "Legacy schema with basic tracking",
             ["SqlServerConfiguration:Queries:2:Query"] = "SELECT FeatureName, COUNT(*) as UsageCount FROM FeatureLog WHERE LogDate > DATEADD(day, -30, GETDATE()) GROUP BY FeatureName",
-            ["SqlServerConfiguration:Queries:2:SchemaVersion"] = "1.0-1.9",
             
             ["SqlServerConfiguration:QueryTimeout"] = "30",
             ["SqlServerConfiguration:ConnectionTimeout"] = "15",
@@ -90,12 +83,12 @@ public class FullApplicationTests : TestBase
         foreach (var server in sqlConfig.Servers)
         {
             var databases = await discoveryService.DiscoverDatabasesAsync(
-                server.MasterConnectionString, 
+                server.ConnectionString, 
                 sqlConfig.ExcludeSystemDatabases);
 
             foreach (var database in databases)
             {
-                var connectionStringBuilder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(server.MasterConnectionString);
+                var connectionStringBuilder = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(server.ConnectionString);
                 connectionStringBuilder.InitialCatalog = database.Name;
                 var databaseConnectionString = connectionStringBuilder.ConnectionString;
 
@@ -161,7 +154,7 @@ public class FullApplicationTests : TestBase
 
         // Act
         var databases = await discoveryService.DiscoverDatabasesAsync(
-            sqlConfig.Servers[0].MasterConnectionString, 
+            sqlConfig.Servers[0].ConnectionString, 
             sqlConfig.ExcludeSystemDatabases);
 
         // Assert
