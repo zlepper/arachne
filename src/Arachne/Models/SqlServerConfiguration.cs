@@ -8,6 +8,7 @@ public class SqlServerConfiguration
     public int ConnectionTimeout { get; set; } = 15;
     public bool ExcludeSystemDatabases { get; set; } = true;
     public bool StopOnFirstSuccessfulQuery { get; set; } = true;
+    public int MaxConcurrentOperations { get; set; } = 10;
 }
 
 public class OutputConfiguration

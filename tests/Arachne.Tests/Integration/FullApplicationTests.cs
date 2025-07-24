@@ -45,6 +45,7 @@ public class FullApplicationTests : TestBase
             ["SqlServerConfiguration:ConnectionTimeout"] = "15",
             ["SqlServerConfiguration:ExcludeSystemDatabases"] = "true",
             ["SqlServerConfiguration:StopOnFirstSuccessfulQuery"] = "true",
+            ["SqlServerConfiguration:MaxConcurrentOperations"] = "5",
             
             ["OutputConfiguration:ShowEmptyResults"] = "true",
             ["OutputConfiguration:IncludeTimestamp"] = "true",
@@ -191,6 +192,7 @@ public class FullApplicationTests : TestBase
         Assert.That(sqlConfig.Queries[0].Name, Is.EqualTo("FeatureUsage_v3"));
         Assert.That(sqlConfig.Queries[1].Name, Is.EqualTo("FeatureUsage_v2"));
         Assert.That(sqlConfig.Queries[2].Name, Is.EqualTo("FeatureUsage_v1"));
+        Assert.That(sqlConfig.MaxConcurrentOperations, Is.EqualTo(5));
         
         Assert.That(outputConfig.ShowEmptyResults, Is.True);
         Assert.That(outputConfig.IncludeTimestamp, Is.True);
